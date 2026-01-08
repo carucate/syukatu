@@ -89,6 +89,10 @@
       { name: '青緑', bg: 'bg-teal-500', text: 'text-white', value: 'teal' },
       { name: '水色', bg: 'bg-cyan-500', text: 'text-black', value: 'cyan' },
       { name: 'グレー', bg: 'bg-gray-500', text: 'text-white', value: 'gray' },
+      { name: '白', bg: 'bg-white border-2 border-black', text: 'text-black', value: 'white' },
+      { name: '茶', bg: 'bg-amber-700', text: 'text-white', value: 'brown' },
+      { name: '深緑', bg: 'bg-emerald-700', text: 'text-white', value: 'darkgreen' },
+      { name: '紺', bg: 'bg-indigo-700', text: 'text-white', value: 'navy' },
     ];
 
     const JobHuntManager = () => {
@@ -197,9 +201,17 @@
       };
 
       const getEventsForDate = (date) => {
-        return events.filter(event => {
+        const dayEvents = events.filter(event => {
           const eventDate = new Date(event.date);
           return eventDate.toDateString() === date.toDateString();
+        });
+        
+        // 時間順にソート（時間未指定は最後）
+        return dayEvents.sort((a, b) => {
+          if (!a.time && !b.time) return 0;
+          if (!a.time) return 1;
+          if (!b.time) return -1;
+          return a.time.localeCompare(b.time);
         });
       };
 
@@ -229,10 +241,11 @@
                   {dayEvents.map(event => {
                     const company = companies.find(c => c.id === event.companyId);
                     const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
+                    const timeDisplay = event.time ? `${event.time} ` : '';
                     return (
                       <div key={event.id} className={`${colorClasses.bg} ${colorClasses.text} p-3 rounded-lg`}>
                         <div className="font-semibold">{company?.name || '不明な企業'}</div>
-                        <div className="text-sm mt-1">{event.title}</div>
+                        <div className="text-sm mt-1">{timeDisplay}{event.title}</div>
                         <button
                           onClick={() => {
                             deleteEvent(event.id);
@@ -293,13 +306,14 @@
                 {dayEvents.slice(0, 3).map(event => {
                   const company = companies.find(c => c.id === event.companyId);
                   const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
+                  const timeDisplay = event.time ? `${event.time} ` : '';
                   return (
                     <div 
                       key={event.id} 
                       className={`text-[10px] sm:text-xs ${colorClasses.bg} ${colorClasses.text} px-1 py-0.5 rounded truncate leading-tight`}
-                      title={`${company?.name} - ${event.title}`}
+                      title={`${timeDisplay}${company?.name} - ${event.title}`}
                     >
-                      {event.title}
+                      {timeDisplay}{event.title}
                     </div>
                   );
                 })}
@@ -546,20 +560,23 @@
                     <p className="text-gray-500 text-sm">イベントがありません</p>
                   ) : (
                     <div className="space-y-2">
-                      {companyEvents.map(event => (
-                        <div key={event.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <div>
-                            <p className="font-medium">{event.title}</p>
-                            <p className="text-sm text-gray-600">{event.date}</p>
+                      {companyEvents.map(event => {
+                        const timeDisplay = event.time ? `${event.time} - ` : '';
+                        return (
+                          <div key={event.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <div>
+                              <p className="font-medium">{event.title}</p>
+                              <p className="text-sm text-gray-600">{event.date} {timeDisplay && `(${event.time})`}</p>
+                            </div>
+                            <button
+                              onClick={() => deleteEvent(event.id)}
+                              className="p-1 hover:bg-red-100 text-red-600 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => deleteEvent(event.id)}
-                            className="p-1 hover:bg-red-100 text-red-600 rounded"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -668,7 +685,8 @@
         const [formData, setFormData] = useState({
           companyId: companies[0]?.id || '',
           title: '',
-          date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          time: ''
         });
 
         useEffect(() => {
@@ -728,6 +746,15 @@
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">時間（任意）</label>
+                  <input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                   />
                 </div>
