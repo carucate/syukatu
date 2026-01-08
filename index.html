@@ -294,6 +294,16 @@
                                 />
                               </div>
                             </div>
+                            <div>
+                              <label className="block text-xs font-medium mb-1">補足事項</label>
+                              <textarea
+                                value={editingEvent.notes || ''}
+                                onChange={(e) => setEditingEvent({ ...editingEvent, notes: e.target.value })}
+                                rows={3}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="場所、持ち物、注意事項など..."
+                              />
+                            </div>
                             <div className="flex gap-2 mt-2">
                               <button
                                 onClick={() => handleUpdateEvent(event.id, editingEvent)}
@@ -325,6 +335,11 @@
                       <div key={event.id} className={`${colorClasses.bg} ${colorClasses.text} p-3 rounded-lg`}>
                         <div className="font-semibold">{company?.name || '不明な企業'}</div>
                         <div className="text-sm mt-1">{timeDisplay}{event.title}</div>
+                        {event.notes && (
+                          <div className="text-xs mt-2 opacity-90 bg-black bg-opacity-10 p-2 rounded">
+                            {event.notes}
+                          </div>
+                        )}
                         <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => setEditingEvent(event)}
@@ -372,7 +387,7 @@
         const days = [];
         
         for (let i = 0; i < startingDayOfWeek; i++) {
-          days.push(<div key={`empty-${i}`} className="h-20 sm:h-24 bg-gray-50"></div>);
+          days.push(<div key={`empty-${i}`} className="h-20 sm:h-24 bg-gray-50 min-w-[40px] sm:min-w-[80px]"></div>);
         }
         
         for (let day = 1; day <= daysInMonth; day++) {
@@ -384,7 +399,7 @@
             <div 
               key={day} 
               onClick={() => setViewingDate(date)}
-              className={`h-20 sm:h-24 border border-gray-200 p-0.5 sm:p-1 cursor-pointer hover:bg-gray-50 ${isToday ? 'bg-blue-50' : 'bg-white'}`}
+              className={`h-20 sm:h-24 border border-gray-200 p-0.5 sm:p-1 cursor-pointer hover:bg-gray-50 min-w-[40px] sm:min-w-[80px] ${isToday ? 'bg-blue-50' : 'bg-white'}`}
             >
               <div className={`text-[10px] sm:text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
                 {day}
@@ -440,9 +455,9 @@
                 </div>
               </div>
               
-              <div className="grid grid-cols-7 gap-0 border-t border-l border-gray-200">
+              <div className="grid grid-cols-7 gap-0 border-t border-l border-gray-200 overflow-x-auto">
                 {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-                  <div key={day} className="text-center text-xs sm:text-sm font-semibold py-1 sm:py-2 bg-gray-100 border-r border-b border-gray-200">
+                  <div key={day} className="text-center text-[10px] sm:text-sm font-semibold py-1 sm:py-2 bg-gray-100 border-r border-b border-gray-200 min-w-[40px] sm:min-w-[80px]">
                     {day}
                   </div>
                 ))}
@@ -782,7 +797,8 @@
           title: '',
           date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           startTime: '',
-          endTime: ''
+          endTime: '',
+          notes: ''
         });
 
         useEffect(() => {
@@ -864,6 +880,16 @@
                       className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">補足事項（任意）</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="場所、持ち物、注意事項など..."
+                  />
                 </div>
                 <button
                   onClick={handleSubmit}
