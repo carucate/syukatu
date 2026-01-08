@@ -92,8 +92,6 @@
     ];
 
     const JobHuntManager = () => {
-      const [isAuthenticated, setIsAuthenticated] = useState(false);
-      const [passwordInput, setPasswordInput] = useState('');
       const [companies, setCompanies] = useState([]);
       const [events, setEvents] = useState([]);
       const [currentDate, setCurrentDate] = useState(new Date());
@@ -103,8 +101,6 @@
       const [isAddingCompany, setIsAddingCompany] = useState(false);
       const [isAddingEvent, setIsAddingEvent] = useState(false);
       const [loading, setLoading] = useState(true);
-
-      const correctPassword = '4159';
 
       const statuses = [
         '検討中',
@@ -120,12 +116,8 @@
       ];
 
       useEffect(() => {
-        if (isAuthenticated) {
-          loadData();
-        } else {
-          setLoading(false);
-        }
-      }, [isAuthenticated]);
+        loadData();
+      }, []);
 
       const loadData = () => {
         try {
@@ -214,22 +206,6 @@
       const getColorClasses = (colorValue) => {
         const color = COLORS.find(c => c.value === colorValue);
         return color || COLORS[1]; // デフォルトは青
-      };
-
-      const handleLogin = () => {
-        if (passwordInput === correctPassword) {
-          setIsAuthenticated(true);
-          setPasswordInput('');
-        } else {
-          alert('パスワードが間違っています');
-          setPasswordInput('');
-        }
-      };
-
-      const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-          handleLogin();
-        }
       };
 
       const DayDetailModal = ({ date, onClose }) => {
@@ -771,35 +747,6 @@
         return (
           <div className="min-h-screen bg-gray-100 flex items-center justify-center">
             <div className="text-gray-600">読み込み中...</div>
-          </div>
-        );
-      }
-
-      if (!isAuthenticated) {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-              <div className="text-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">就活管理アプリ</h1>
-                <p className="text-gray-600">パスワードを入力してください</p>
-              </div>
-              <div className="space-y-4">
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="パスワード"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={handleLogin}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold transition"
-                >
-                  ログイン
-                </button>
-              </div>
-            </div>
           </div>
         );
       }
