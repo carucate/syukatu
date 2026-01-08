@@ -206,12 +206,12 @@
           return eventDate.toDateString() === date.toDateString();
         });
         
-        // 時間順にソート（時間未指定は最後）
+        // 開始時間順にソート（時間未指定は最後）
         return dayEvents.sort((a, b) => {
-          if (!a.time && !b.time) return 0;
-          if (!a.time) return 1;
-          if (!b.time) return -1;
-          return a.time.localeCompare(b.time);
+          if (!a.startTime && !b.startTime) return 0;
+          if (!a.startTime) return 1;
+          if (!b.startTime) return -1;
+          return a.startTime.localeCompare(b.startTime);
         });
       };
 
@@ -241,7 +241,14 @@
                   {dayEvents.map(event => {
                     const company = companies.find(c => c.id === event.companyId);
                     const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
-                    const timeDisplay = event.time ? `${event.time} ` : '';
+                    let timeDisplay = '';
+                    if (event.startTime && event.endTime) {
+                      timeDisplay = `${event.startTime} - ${event.endTime} `;
+                    } else if (event.startTime) {
+                      timeDisplay = `${event.startTime} - `;
+                    } else if (event.endTime) {
+                      timeDisplay = `- ${event.endTime} `;
+                    }
                     return (
                       <div key={event.id} className={`${colorClasses.bg} ${colorClasses.text} p-3 rounded-lg`}>
                         <div className="font-semibold">{company?.name || '不明な企業'}</div>
@@ -306,7 +313,14 @@
                 {dayEvents.slice(0, 3).map(event => {
                   const company = companies.find(c => c.id === event.companyId);
                   const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
-                  const timeDisplay = event.time ? `${event.time} ` : '';
+                  let timeDisplay = '';
+                  if (event.startTime && event.endTime) {
+                    timeDisplay = `${event.startTime}-${event.endTime} `;
+                  } else if (event.startTime) {
+                    timeDisplay = `${event.startTime} `;
+                  } else if (event.endTime) {
+                    timeDisplay = `~${event.endTime} `;
+                  }
                   return (
                     <div 
                       key={event.id} 
@@ -561,12 +575,21 @@
                   ) : (
                     <div className="space-y-2">
                       {companyEvents.map(event => {
-                        const timeDisplay = event.time ? `${event.time} - ` : '';
+                        let timeDisplay = '';
+                        if (event.startTime && event.endTime) {
+                          timeDisplay = `${event.startTime} - ${event.endTime}`;
+                        } else if (event.startTime) {
+                          timeDisplay = `${event.startTime} -`;
+                        } else if (event.endTime) {
+                          timeDisplay = `- ${event.endTime}`;
+                        }
                         return (
                           <div key={event.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                             <div>
                               <p className="font-medium">{event.title}</p>
-                              <p className="text-sm text-gray-600">{event.date} {timeDisplay && `(${event.time})`}</p>
+                              <p className="text-sm text-gray-600">
+                                {event.date} {timeDisplay && `(${timeDisplay})`}
+                              </p>
                             </div>
                             <button
                               onClick={() => deleteEvent(event.id)}
@@ -686,7 +709,8 @@
           companyId: companies[0]?.id || '',
           title: '',
           date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          time: ''
+          startTime: '',
+          endTime: ''
         });
 
         useEffect(() => {
@@ -749,14 +773,25 @@
                     className="w-full border border-gray-300 rounded px-3 py-2"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">時間（任意）</label>
-                  <input
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">開始時間（任意）</label>
+                    <input
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">終了時間（任意）</label>
+                    <input
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
+                  </div>
                 </div>
                 <button
                   onClick={handleSubmit}
