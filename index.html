@@ -223,6 +223,13 @@
       const DayDetailModal = ({ date, onClose }) => {
         const dayEvents = getEventsForDate(date);
         const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`;
+        const [editingEvent, setEditingEvent] = useState(null);
+
+        const handleUpdateEvent = (eventId, updates) => {
+          const updatedEvents = events.map(e => e.id === eventId ? { ...e, ...updates } : e);
+          saveEvents(updatedEvents);
+          setEditingEvent(null);
+        };
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -241,6 +248,71 @@
                   {dayEvents.map(event => {
                     const company = companies.find(c => c.id === event.companyId);
                     const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
+                    
+                    if (editingEvent?.id === event.id) {
+                      return (
+                        <div key={event.id} className="border-2 border-blue-500 p-3 rounded-lg bg-gray-50">
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs font-medium mb-1">企業</label>
+                              <select
+                                value={editingEvent.companyId}
+                                onChange={(e) => setEditingEvent({ ...editingEvent, companyId: e.target.value })}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                              >
+                                {companies.map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium mb-1">イベント名</label>
+                              <input
+                                type="text"
+                                value={editingEvent.title}
+                                onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-xs font-medium mb-1">開始</label>
+                                <input
+                                  type="time"
+                                  value={editingEvent.startTime || ''}
+                                  onChange={(e) => setEditingEvent({ ...editingEvent, startTime: e.target.value })}
+                                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium mb-1">終了</label>
+                                <input
+                                  type="time"
+                                  value={editingEvent.endTime || ''}
+                                  onChange={(e) => setEditingEvent({ ...editingEvent, endTime: e.target.value })}
+                                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleUpdateEvent(event.id, editingEvent)}
+                                className="flex-1 bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700"
+                              >
+                                保存
+                              </button>
+                              <button
+                                onClick={() => setEditingEvent(null)}
+                                className="flex-1 bg-gray-300 text-gray-700 py-1 rounded text-sm hover:bg-gray-400"
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     let timeDisplay = '';
                     if (event.startTime && event.endTime) {
                       timeDisplay = `${event.startTime} - ${event.endTime} `;
@@ -253,17 +325,25 @@
                       <div key={event.id} className={`${colorClasses.bg} ${colorClasses.text} p-3 rounded-lg`}>
                         <div className="font-semibold">{company?.name || '不明な企業'}</div>
                         <div className="text-sm mt-1">{timeDisplay}{event.title}</div>
-                        <button
-                          onClick={() => {
-                            deleteEvent(event.id);
-                            if (getEventsForDate(date).length <= 1) {
-                              onClose();
-                            }
-                          }}
-                          className="mt-2 text-xs underline opacity-80 hover:opacity-100"
-                        >
-                          削除
-                        </button>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => setEditingEvent(event)}
+                            className="text-xs underline opacity-80 hover:opacity-100"
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => {
+                              deleteEvent(event.id);
+                              if (getEventsForDate(date).length <= 1) {
+                                onClose();
+                              }
+                            }}
+                            className="text-xs underline opacity-80 hover:opacity-100"
+                          >
+                            削除
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -304,30 +384,22 @@
             <div 
               key={day} 
               onClick={() => setViewingDate(date)}
-              className={`h-20 sm:h-24 border border-gray-200 p-1 cursor-pointer hover:bg-gray-50 ${isToday ? 'bg-blue-50' : 'bg-white'}`}
+              className={`h-20 sm:h-24 border border-gray-200 p-0.5 sm:p-1 cursor-pointer hover:bg-gray-50 ${isToday ? 'bg-blue-50' : 'bg-white'}`}
             >
-              <div className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
+              <div className={`text-[10px] sm:text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
                 {day}
               </div>
               <div className="mt-0.5 space-y-0.5 overflow-hidden">
                 {dayEvents.slice(0, 3).map(event => {
                   const company = companies.find(c => c.id === event.companyId);
                   const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
-                  let timeDisplay = '';
-                  if (event.startTime && event.endTime) {
-                    timeDisplay = `${event.startTime}-${event.endTime} `;
-                  } else if (event.startTime) {
-                    timeDisplay = `${event.startTime} `;
-                  } else if (event.endTime) {
-                    timeDisplay = `~${event.endTime} `;
-                  }
                   return (
                     <div 
                       key={event.id} 
-                      className={`text-[10px] sm:text-xs ${colorClasses.bg} ${colorClasses.text} px-1 py-0.5 rounded truncate leading-tight`}
-                      title={`${timeDisplay}${company?.name} - ${event.title}`}
+                      className={`text-[8px] sm:text-[10px] ${colorClasses.bg} ${colorClasses.text} px-0.5 sm:px-1 py-0.5 rounded truncate leading-tight`}
+                      title={`${company?.name} - ${event.title}`}
                     >
-                      {timeDisplay}{event.title}
+                      {event.title}
                     </div>
                   );
                 })}
