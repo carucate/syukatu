@@ -98,12 +98,14 @@
     const JobHuntManager = () => {
       const [companies, setCompanies] = useState([]);
       const [events, setEvents] = useState([]);
+      const [todos, setTodos] = useState([]);
       const [currentDate, setCurrentDate] = useState(new Date());
       const [view, setView] = useState('calendar');
       const [selectedCompany, setSelectedCompany] = useState(null);
       const [selectedDate, setSelectedDate] = useState(null);
       const [isAddingCompany, setIsAddingCompany] = useState(false);
       const [isAddingEvent, setIsAddingEvent] = useState(false);
+      const [isAddingTodo, setIsAddingTodo] = useState(false);
       const [loading, setLoading] = useState(true);
 
       const statuses = [
@@ -127,12 +129,16 @@
         try {
           const savedCompanies = localStorage.getItem('job-hunt-companies');
           const savedEvents = localStorage.getItem('job-hunt-events');
+          const savedTodos = localStorage.getItem('job-hunt-todos');
           
           if (savedCompanies) {
             setCompanies(JSON.parse(savedCompanies));
           }
           if (savedEvents) {
             setEvents(JSON.parse(savedEvents));
+          }
+          if (savedTodos) {
+            setTodos(JSON.parse(savedTodos));
           }
         } catch (error) {
           console.log('初回起動またはデータなし');
@@ -148,6 +154,11 @@
       const saveEvents = (newEvents) => {
         setEvents(newEvents);
         localStorage.setItem('job-hunt-events', JSON.stringify(newEvents));
+      };
+
+      const saveTodos = (newTodos) => {
+        setTodos(newTodos);
+        localStorage.setItem('job-hunt-todos', JSON.stringify(newTodos));
       };
 
       const addCompany = (companyData) => {
@@ -170,6 +181,8 @@
           saveCompanies(companies.filter(c => c.id !== id));
           const filteredEvents = events.filter(e => e.companyId !== id);
           saveEvents(filteredEvents);
+          const filteredTodos = todos.filter(t => t.companyId !== id);
+          saveTodos(filteredTodos);
           setSelectedCompany(null);
         }
       };
@@ -187,6 +200,33 @@
         if (confirm('このイベントを削除しますか?')) {
           saveEvents(events.filter(e => e.id !== id));
         }
+      };
+
+      const addTodo = (todoData) => {
+        const newTodo = {
+          id: Date.now().toString(),
+          ...todoData,
+          completed: false,
+          createdAt: new Date().toISOString()
+        };
+        saveTodos([...todos, newTodo]);
+        setIsAddingTodo(false);
+      };
+
+      const toggleTodo = (id) => {
+        const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+        saveTodos(updated);
+      };
+
+      const deleteTodo = (id) => {
+        if (confirm('このToDoを削除しますか?')) {
+          saveTodos(todos.filter(t => t.id !== id));
+        }
+      };
+
+      const updateTodo = (id, updates) => {
+        const updated = todos.map(t => t.id === id ? { ...t, ...updates } : t);
+        saveTodos(updated);
       };
 
       const getDaysInMonth = (date) => {
@@ -520,6 +560,145 @@
                           </span>
                         </div>
                         <Building2 className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const TodoList = () => {
+        const sortedTodos = [...todos].sort((a, b) => {
+          if (a.completed !== b.completed) return a.completed ? 1 : -1;
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline) - new Date(b.deadline);
+        });
+
+        const [editingTodo, setEditingTodo] = useState(null);
+
+        return (
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">ToDoリスト</h2>
+              <button
+                onClick={() => setIsAddingTodo(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4" />
+                ToDo追加
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {sortedTodos.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">ToDoが登録されていません</p>
+              ) : (
+                sortedTodos.map(todo => {
+                  const company = companies.find(c => c.id === todo.companyId);
+                  const colorClasses = company ? getColorClasses(company.color) : getColorClasses('blue');
+                  const isOverdue = todo.deadline && new Date(todo.deadline) < new Date() && !todo.completed;
+
+                  if (editingTodo?.id === todo.id) {
+                    return (
+                      <div key={todo.id} className="border-2 border-blue-500 p-3 rounded-lg bg-gray-50">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-medium mb-1">企業</label>
+                            <select
+                              value={editingTodo.companyId}
+                              onChange={(e) => setEditingTodo({ ...editingTodo, companyId: e.target.value })}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                            >
+                              {companies.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">タスク内容</label>
+                            <input
+                              type="text"
+                              value={editingTodo.title}
+                              onChange={(e) => setEditingTodo({ ...editingTodo, title: e.target.value })}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">期限</label>
+                            <input
+                              type="date"
+                              value={editingTodo.deadline || ''}
+                              onChange={(e) => setEditingTodo({ ...editingTodo, deadline: e.target.value })}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => {
+                                updateTodo(todo.id, editingTodo);
+                                setEditingTodo(null);
+                              }}
+                              className="flex-1 bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700"
+                            >
+                              保存
+                            </button>
+                            <button
+                              onClick={() => setEditingTodo(null)}
+                              className="flex-1 bg-gray-300 text-gray-700 py-1 rounded text-sm hover:bg-gray-400"
+                            >
+                              キャンセル
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={todo.id}
+                      className={`border border-gray-200 rounded p-3 ${todo.completed ? 'opacity-50 bg-gray-50' : ''} ${isOverdue ? 'border-red-300 bg-red-50' : ''}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => toggleTodo(todo.id)}
+                          className="mt-1 w-5 h-5 cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${colorClasses.bg}`}></div>
+                            <span className="text-sm font-medium text-gray-600">{company?.name || '不明な企業'}</span>
+                          </div>
+                          <p className={`font-medium mt-1 ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+                            {todo.title}
+                          </p>
+                          {todo.deadline && (
+                            <p className={`text-sm mt-1 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                              期限: {todo.deadline} {isOverdue && '(期限切れ)'}
+                            </p>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => setEditingTodo(todo)}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              編集
+                            </button>
+                            <button
+                              onClick={() => deleteTodo(todo.id)}
+                              className="text-xs text-red-600 hover:underline"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -911,7 +1090,72 @@
         );
       };
 
-      if (loading) {
+      const AddTodoModal = () => {
+        const [formData, setFormData] = useState({
+          companyId: companies[0]?.id || '',
+          title: '',
+          deadline: ''
+        });
+
+        const handleSubmit = () => {
+          if (formData.companyId && formData.title) {
+            addTodo(formData);
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">ToDoを追加</h3>
+                <button onClick={() => setIsAddingTodo(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">企業 *</label>
+                  <select
+                    value={formData.companyId}
+                    onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  >
+                    {companies.map(company => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">タスク内容 *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="例: ES提出、面接対策"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">期限（任意）</label>
+                  <input
+                    type="date"
+                    value={formData.deadline}
+                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+                <button
+                  onClick={handleSubmit}
+                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                >
+                  追加
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
         return (
           <div className="min-h-screen bg-gray-100 flex items-center justify-center">
             <div className="text-gray-600">読み込み中...</div>
@@ -944,11 +1188,25 @@
                   <Building2 className="w-4 h-4" />
                   企業一覧
                 </button>
+                <button
+                  onClick={() => setView('todos')}
+                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 rounded text-sm sm:text-base ${
+                    view === 'todos' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                  </svg>
+                  ToDo
+                </button>
               </div>
             </div>
 
             {view === 'calendar' ? (
               <CalendarView />
+            ) : view === 'todos' ? (
+              <TodoList />
             ) : selectedCompany ? (
               <CompanyDetail company={selectedCompany} />
             ) : (
@@ -957,6 +1215,7 @@
 
             {isAddingCompany && <AddCompanyModal />}
             {isAddingEvent && companies.length > 0 && <AddEventModal />}
+            {isAddingTodo && companies.length > 0 && <AddTodoModal />}
             {isAddingEvent && companies.length === 0 && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-lg p-6 max-w-md w-full">
